@@ -1,4 +1,4 @@
-# Neural-Decoding-With-SCRNN
+# Neural-Decoding-With-SARNN
  How does the brain transform bursts of neural activity into a sense of direction or location?
  How can one decode and uncover these two just from neural spike? This thesis explores that
  question by using patterns of recorded brain signals to predict either the direction a mouse is
