@@ -8,7 +8,7 @@ import data, Laplacian, plotting, SCNN, train
 
 #########  set device to gpu or cpu  ###########
 # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-device = 'cpu'
+device = 'cuda'
 
 
 #########  Parameters  ###########
