@@ -83,6 +83,8 @@ st_ind_dict = data.build_ind_dict(binary_spike_count_matrix, max_simplex_dim)
 full_binary_st = Laplacian.build_all_complexes(binary_spike_count_matrix, st_ind_dict, max_simplex_dim)#List of lists of dictionaries representing simplicial complexes
 bdry = Laplacian.build_boundaries(st_ind_dict)
 Ups, Downs = Laplacian.build_ups_downs(bdry)
+B1 = bdry[1].to_dense().clone().detach().to(device)
+B2 = bdry[2].to_dense().clone().detach().to(device)
 Up = [U.to_dense().clone().detach().to(device) for U in Ups]
 Down = [D.to_dense().clone().detach().to(device) for D in Downs]
 
@@ -95,7 +97,10 @@ for k in range(1, len(Up)):
 	Lap.append(torch.cat([Up[k], Down[k-1]], dim=0))
 Lap.append(Down[-1])
 
-
+L0 = Lap[0]
+L1_u = Lap[1]   # Upper 1-Laplacian
+L1_d = Lap[2]   # Lower 1-Laplacian
+L2 = Lap[3]
 
 
 n_edges = len(st_ind_dict[1])
@@ -106,6 +111,8 @@ print('   Neurons, edges, triangles :', n_simp_list)
 
 test_stop_idx = int(test_end_time*60 / (win_size))
 
+# Z0, Z1, and Z2,  the zero cochain, 1-cochain, and 2-cochains (Arlette & Damas)
+# ==============================================================================
 
 print('Calculating cochains...')
 cochains = data.build_cochains(full_binary_st, spike_count_matrix, n_edges, n_triangles) #List of cochain tensors for each dimension. 
@@ -113,12 +120,9 @@ cochains = data.build_cochains(full_binary_st, spike_count_matrix, n_edges, n_tr
 
 train_cochains = [C[...,test_stop_idx:] for C in cochains]
 
-
-# Z0, Z1, and Z2,  the zero cochain, 1-cochain, and 2-cochains (Arlette & Damas)
-# ==============================================================================
-
-
-
+z0 = train_cochains[0]
+z1 = train_cochains[1]
+z2 = train_cochains[2]
 
 ######################################################################################
 
@@ -127,7 +131,7 @@ train_cochains = [C[...,test_stop_idx:] for C in cochains]
 
 #prepare data for loading for training
 if RNN:
-	training_data = data.DatasetSCRNN(device, train_cochains, angles[test_stop_idx:], sequence_length)
+	training_data = training_data = data.DatasetSARNN(device, train_cochains, angles[test_stop_idx:], sequence_length)
 elif intervals_per_sample==1:
 	training_data = data.Dataset(device, train_cochains, angles[test_stop_idx:])
 else:
@@ -144,8 +148,8 @@ print('Flattened feature vector size:', input_size)
 
 
 # load neural network 
-if RNN: #SCRNN
-	network = SCNN.SCNN_RNN(max_conv_dim, sc_layers, n_filters, sequence_length, n_simp_list, degree, Lap, input_size, rnn_layers, hidden_size, 1, dropout, \
+if RNN: #SARNN
+	network = SAN.SAN_RNN(max_conv_dim, sc_layers, n_filters, sequence_length, n_simp_list, degree, Lap, input_size, rnn_layers, hidden_size, 1, dropout, \
 	conv_activation, rnn_activation).to(device)
 elif intervals_per_sample==1: #SCNN with only one time bin considered for each input
 	network = SCNN.SCNN(max_conv_dim, sc_layers, n_filters, n_simp_list, degree, Lap, input_size, rnn_layers, nn_width, 1, dropout, \

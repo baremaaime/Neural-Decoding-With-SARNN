@@ -318,6 +318,45 @@ class DatasetSCRNN(torch.utils.data.Dataset):
 		return idx, sample, label
 
 
+#builds dataset used for training SARNN
+
+
+class DatasetSARNN(torch.utils.data.Dataset):
+    def __init__(self, device, cochains, labels, sequence_length):
+        """
+        Dataset for Simplicial Attention Recurrent Neural Network (SARNN).
+        Returns sequences of cochains and corresponding labels.
+
+        Args:
+            device (torch.device): 'cpu' or 'cuda'
+            cochains (list of Tensors): list of tensors for each simplicial dimension
+            labels (numpy array):  vector of ground truth HD angles
+            sequence_length (int): number of time steps per sequence
+        """
+        self.device = device
+        self.sequence_length = sequence_length
+        self.labels = torch.tensor(labels, dtype=torch.float32).to(self.device)
+
+        # Shape: (dim, n_simplices, T)
+        self.cochains = [C.to(self.device) for C in cochains]
+        self.T = self.cochains[0].shape[1]
+
+    def __len__(self):
+        return self.T - self.sequence_length
+
+    def __getitem__(self, idx):
+        """
+        Returns:
+            x_seq: list of length D (dims), each element is (n_simplices, sequence_length)
+            y: scalar, target angle at time t+seq
+        """
+        x_seq = [C[:, idx:idx + self.sequence_length] for C in self.cochains]
+        y = self.labels[idx + self.sequence_length]
+
+        return idx, x_seq, y
+
+
+
 #builds dataset used for training FFNN
 class DatasetFFNN(torch.utils.data.Dataset):
 	'''
