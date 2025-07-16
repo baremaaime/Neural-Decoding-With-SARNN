@@ -3,12 +3,12 @@ import torch
 import torch.nn as nn
 import time
 import pickle
-import data, Laplacian, plotting, SCNN, train
+import data, Laplacian, plotting, SCNN, train, SAN
 
 
 #########  set device to gpu or cpu  ###########
-# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-device = 'cuda'
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# device = 'cuda'
 
 
 #########  Parameters  ###########
@@ -22,7 +22,7 @@ intervals_per_sample = 3   #intervals included in individua inputs to SCNN
 sequence_length = 8   #length of input sequence used for RNN component
 
 threshold = 30   #threshold parameter used in binarization step of pre-processing
-max_simplex_dim = 2  #max dimension of simplices included in functional simplicial complex
+max_simplex_dim = 3  #max dimension of simplices included in functional simplicial complex
 max_active = 8   #max number of active cells in a time bin
 
 epochs = 100   
@@ -80,11 +80,12 @@ n_neurons, n_samples = spike_count_matrix.shape
 print('Calculating Laplacians...')
 #Calculate Laplacians for each piece of data
 st_ind_dict = data.build_ind_dict(binary_spike_count_matrix, max_simplex_dim)
+print("Number of triangles:", len(st_ind_dict[2]))
 full_binary_st = Laplacian.build_all_complexes(binary_spike_count_matrix, st_ind_dict, max_simplex_dim)#List of lists of dictionaries representing simplicial complexes
 bdry = Laplacian.build_boundaries(st_ind_dict)
 Ups, Downs = Laplacian.build_ups_downs(bdry)
-B1 = bdry[1].to_dense().clone().detach().to(device)
-B2 = bdry[2].to_dense().clone().detach().to(device)
+B1 = data.coo2tensor(bdry[1]).to(device)
+B2 = data.coo2tensor(bdry[2]).to(device)
 Up = [U.to_dense().clone().detach().to(device) for U in Ups]
 Down = [D.to_dense().clone().detach().to(device) for D in Downs]
 
